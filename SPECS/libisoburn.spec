@@ -3,7 +3,7 @@
 Summary:         Library to enable creation and expansion of ISO-9660 filesystems
 Name:            libisoburn
 Version:         1.5.4
-Release:         4%{?dist}
+Release:         5%{?dist}
 License:         GPLv2+
 URL:             https://libburnia-project.org/
 Source0:         https://files.libburnia-project.org/releases/%{pkgname}-%{version}.tar.gz
@@ -69,6 +69,7 @@ Requires:        kf5-filesystem >= 5
 Requires(post):  /sbin/install-info
 Requires(preun): /sbin/install-info
 %endif
+Requires(pre):   %{_sbindir}/alternatives, coreutils
 Requires(post):  %{_sbindir}/alternatives, coreutils
 Requires(preun): %{_sbindir}/alternatives
 Provides: cdrecord
@@ -178,6 +179,16 @@ cd releng
 
 %ldconfig_scriptlets
 
+%pre -n xorriso%{?variant}
+# remove alternativized files if they are not symlinks
+# otherwise upgrades from non-alternativized versions do not work
+# the list of files should be kept in sync with the "alternatives"
+# commands in %%post
+for f in cdrecord wodim mkisofs genisoimage ; do
+    [ -L %{_bindir}/$f ] || %{__rm} -f %{_bindir}/$f || :
+    [ -L %{_mandir}/man1/$f.1.gz ] || %{__rm} -f %{_mandir}/man1/$f.1.gz || :
+done
+
 %post -n xorriso%{?variant}
 %if 0%{?rhel} == 7
 /sbin/install-info %{_infodir}/xorrecord.info.gz %{_infodir}/dir || :
@@ -250,6 +261,9 @@ fi
 %endif
 
 %changelog
+* Wed Jan 15 2025 Pavel Cahyna <pcahyna@redhat.com> - 1.5.4-5
+- Fix upgrades from non-alternativized versions/packages
+
 * Tue Feb 08 2022 Jiri Kucera <jkucera@redhat.com> - 1.5.4-4
 - Provide alternatives
   Resolves: #1967484
